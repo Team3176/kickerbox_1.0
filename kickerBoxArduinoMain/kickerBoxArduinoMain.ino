@@ -1,69 +1,68 @@
-#include <SoftwareSerial.h>
-
 #include <Servo.h>
-
 
 Servo motorController;
 
 float mcOutput = 0;
+
 int sliderPort = A0;
+
 int rawSlider = 512;
 float percentMotor = 0;
 float deadBandLow = 492;
 float deadBandHigh =532;
 float floatSlider = 0;
 int clearEstop = 0;
-int seteStop = 1;
-int pauseToggle = 2;
+int seteStop = 0;
+int pauseToggle = 0;
 
 enum mode{
   estop=0,
   running=1,
   paused=2
 };
+
 mode curMode = estop;
-
-
-
 
 
 void setup()
 {
-    Serial.begin(9600);
-    
-    pinMode(2, INPUT);
+  Serial.begin(9600);
+  motorController.attach(9,1000,2000);
+   pinMode(2, INPUT);
     pinMode(4, INPUT);
     pinMode(3,INPUT);
     digitalWrite(2,HIGH);
     digitalWrite(4,HIGH);
     digitalWrite(3,HIGH);
-    motorController.attach(9,1000,2000); 
 }
-
 
 void loop()
  { 
-
-  //inputs
+    //inputs
+  
   rawSlider = analogRead(sliderPort);
   clearEstop = digitalRead(2);
   seteStop = digitalRead(4);
+  pauseToggle = digitalRead(3);
   //******processing*******
   //+Processing Slider Into Motor Percent
   floatSlider = rawSlider;
   if (rawSlider < deadBandLow){
     //If Slider is in the negative range//
     percentMotor = floatSlider*100/492 -100;
+    
   }else if(rawSlider > deadBandHigh){
     // If Slider is in the high range
     percentMotor = floatSlider * 100 /491 -108.4;
+    
   }else{
     //If Slider is in the deadband range
     percentMotor= 0;
   }
+    
   //-Processing Slider Into Motor Percent
-  
-  //+Processes motor percent into motor outputs+//
+  //+Processes motor percenet into motor outputs+//
+ 
   switch(curMode){
   case estop:
     //+Perform Case Actions+//
@@ -86,7 +85,7 @@ void loop()
                curMode = estop;
              }
       //if paused is pressed then set mode=paused
-      if (pauseToggle == 2){
+      if (pauseToggle == 1){
             curMode = paused;
          }
   break;
@@ -100,9 +99,10 @@ void loop()
           curMode = estop;
     }
       //if paused is pressed then set mode=running
-    if (pauseToggle == 2){
+    if (pauseToggle == 1){
       curMode = running;
     }
+    break;
   default:
     //+Perform Case Actions
       //set motor output to zero
@@ -112,20 +112,19 @@ void loop()
         curMode = estop;
   break;
   }
- //-Processes motor percent into motor outputs-//
-
   
-
+  //-Processes motor percenet into motor outputs-//
+  
   //outputs
-
- 
   motorController.write(mcOutput);
-
-
   
-  //
-  Serial.print("Button ");
+  
+  Serial.print("Estop.off ");
   Serial.print(clearEstop);
+  Serial.print(" Estop? ");
+  Serial.print(seteStop);
+  Serial.print(" Toggled ");
+  Serial.print(pauseToggle);
   Serial.print(" Mode ");
   Serial.print(curMode);
   Serial.print(" The Slider is ");
@@ -136,3 +135,8 @@ void loop()
   Serial.print(mcOutput);
   Serial.println(" ");
  }
+
+
+
+
+  
