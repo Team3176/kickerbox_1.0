@@ -20,6 +20,19 @@ enum mode{
 };
   mode curMode = estop;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+const int buttonPin = 3;
+const int motorPin = 11;
+int pauseState = HIGH;
+int buttonState;
+int lastButtonState = LOW;
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 1000;
+
+
+
+
+
+
 void setup()
 {
   Serial.begin(9600);
@@ -124,8 +137,34 @@ break;
         curMode = estop;
   break;
   }
+  int reading = digitalRead(buttonPin);
+
+  if (reading!= lastButtonState)  {
+    lastDebounceTime = millis();
+  }
+
+  if((millis() - lastDebounceTime)> debounceDelay)  {
+    if (reading != buttonState)  {
+      buttonState = reading;
+      if (buttonState == HIGH)  {
+        pauseState = !pauseState;
+      }
+    }
+  }
+
+
+
+
+
+
+
+
+  
   //-Proccessing Motor percent into motor outputs-//
   //outputs
+  digitalWrite(motorPin, pauseState);
+  lastButtonState=reading;
+  
   motorController.write(mcOutput);
   
 
