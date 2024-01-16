@@ -20,6 +20,10 @@ enum mode{
 };
   mode curMode = estop;
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+long lastTime = 0;
+bool pauseDebounceState = 0;
+
+
 void setup()
 {
   Serial.begin(9600);
@@ -45,7 +49,31 @@ void loop()
   rawSlider = analogRead(sliderPort);
   clearEstop = digitalRead(3);
   seteStop = digitalRead(12);
-  pauseToggle = digitalRead(2);
+ /*
+ //Debounce the pause toggle
+    if(clearEstop==0){
+      //if button not pressed
+      lastTime = millis();
+      pauseToggle = 0;
+      pauseDebounceState = 0;
+    }else if(clearEstop == 1){
+      //Button is pressed
+      if(millis()-lastTime < 2000){
+            pauseToggle = 0;
+        }else{
+            //one shot pause
+            if(pauseDebounceState==0){
+              pauseToggle = 1;
+              pauseDebounceState = 1;
+            }else{
+              pauseToggle = 0;
+            }
+        }
+      }
+
+*/
+    
+
 
   //******processing*******
   //+Processing Slider Into Motor Percent
@@ -92,6 +120,8 @@ void loop()
            if (pauseToggle == 0){
              curMode = paused;
            }else {
+            //mcOutput is passed to the servo clas which takes a value from 0 to 180 deg with 0-90 being reverse, 90 being stopped, and 90-180 being forwared
+            //Note that "servo" expepects a 180 deg servo, and we are instead using it for a motor controller. This equation scales accordingly. 
              mcOutput = 0.9*percentMotor+90;
                
            }
@@ -126,29 +156,48 @@ break;
   }
   //-Proccessing Motor percent into motor outputs-//
   //outputs
+
   motorController.write(mcOutput);
   
-
+//Write LCD Line 1
   lcd.setCursor(0,0);
-  lcd.print("Slider");
-  lcd.setCursor(6,0);
+  lcd.print("                ");
+  lcd.setCursor(0,0);
+  lcd.print("Sld:");
+  lcd.setCursor(4,0);
   lcd.print(rawSlider);
-  lcd.setCursor(10,0);
-  lcd.print("ClrES");
-  lcd.setCursor(15 ,0);
-  lcd.print(clearEstop);
-  lcd.setCursor(0,1);
-  lcd.print("Mode");
-  lcd.setCursor(4,1);
-  lcd.print(curMode);
-  lcd.setCursor(5,1);
-  lcd.print(" Prc");
-  lcd.setCursor(9,1);
-  lcd.print(mcOutput);
-
-
-
+  lcd.setCursor(7,0);
+  lcd.print("Pct");
+  lcd.setCursor(10 ,0);
+  lcd.print(percentMotor);
   
+  //Write LCD Line 2
+
+  switch(curMode){
+    case estop:
+    lcd.setCursor(0,1);
+      if(percentMotor != 0 ){
+         lcd.print("ESTP,SldToCenter");
+      }else
+        lcd.print("ESTP,Press Reset ");
+    break;
+    case runnin: 
+      lcd.setCursor(0,1);
+      lcd.print("RUNNING         ");
+    break;
+    case paused:
+      lcd.setCursor(0,1);
+      lcd.print("PAUS:PrsRstToRun");
+    break;
+
+    default:
+      lcd.setCursor(0,1);
+      lcd.print("something broke ");
+    break;
+
+  }
+
+ 
   Serial.print("Estop.off ");
   Serial.print(clearEstop);
   Serial.print(" Estop? ");
